@@ -421,6 +421,49 @@ if(!class_exists('WPCACore')) {
 		}
 		
 		/**
+		 * Get filtered posts from a post type, but in the specified context.
+		 *
+		 * NOTE: This is a pretty inefficient and hacked up way to do this, but it
+		 *       is necessary to be able to evaluate different posts/queries to
+		 *       filter search results for example. Since search results are usually
+		 *       paged, we can probably get away with it (especially on low traffic 
+		 *       servers) as this method will only be performed relatively few times
+		 *       for each page of results.
+		 *
+		 * @since  1.0
+		 * @global type     $wpdb
+		 * @global WP_Query $wp_query
+		 * @global WP_Post  $post
+		 * @return array 
+		 */
+		public static function get_posts_in_context($post_type, $query, $current_post) {
+			global $wpdb, $wp_query, $post;
+
+			// Hack to make sure we are in the correct 'context' for the conditional stuff.
+			$old_wp_query = $wp_query;
+			$old_post = $post;
+			$wp_query = $query;
+			$post = $current_post;
+
+			$old_post_cache = self::$post_cache;
+			self::$post_cache = array();
+			
+			$old_condition_cache = self::$condition_cache;
+			self::$condition_cache = array();
+			
+			// Get the posts
+			$posts = self::get_posts($post_type);
+			
+			// Revert the hacked globals
+			$wp_query = $old_wp_query;
+			$post = $old_post;
+			self::$post_cache = $old_post_cache;
+			self::$condition_cache = $old_condition_cache;
+			
+			return $posts;
+		}
+		
+		/**
 		 * Add meta box to manage condition groups
 		 * 
 		 * @since   1.0
